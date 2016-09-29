@@ -95,7 +95,8 @@ done
 
 # insert a space between each SNP
 sed 's/.\{1\}/& /g' test3.mk > test4.mk
-
+# another way of doing this
+# cat test3.mk | while read oneline; do echo $oneline | fold -w1 | paste -sd' ' - >> test4.mk; done
 
 # paste the IDs back
 awk '{print $1}' mk.tmp2 | sort -nu | paste - test4.mk > test5.mk
