@@ -18,7 +18,7 @@
 
 JOBNAME=mk_adam
 MKFILE=/usr/home/qgg/hdg/ADAM2016/hongding/marker1.res
-#PROG=
+PROG=/usr/home/qgg/hdg/ADAM2016/hongding/re_format/src/get012
 TMPDIR=/scratch/$USER/$PBS_JOBID
 out=$PBS_O_WORKDIR/$JOBNAME.lst
 
@@ -39,7 +39,7 @@ cd $PBS_O_WORKDIR
 
 
 cp $MKFILE $TMPDIR/
-
+cp $PROG $TMPDIR/
 cd $TMPDIR
 
 ulimit -s unlimited
@@ -93,27 +93,27 @@ do
     awk -v j=$i -v el=$k 'NR >= j && NR < el {SNP=SNP$4} END {print SNP}' mk.tmp2 >> test3.mk
 done
 
-# insert a space between each SNP
-sed 's/.\{1\}/& /g' test3.mk > test4.mk
+# insert a space between each SNP (really time consuming)
+## sed 's/.\{1\}/& /g' test3.mk > test4.mk
+
 # another way of doing this
 # cat test3.mk | while read oneline; do echo $oneline | fold -w1 | paste -sd' ' - >> test4.mk; done
 
 # paste the IDs back
-awk '{print $1}' mk.tmp2 | sort -nu | paste - test4.mk > test5.mk
+awk '{print $1}' mk.tmp2 | uniq | paste -d' ' - test3.mk > rawmarker.dat
 
 
 
-# copy back the final marker file
-cp test5.mk $PBS_O_WORKDIR/marker.ssbr
-
-
-
-#(  $PROG < par.txt ) >> $out 2>&1
+# run prog
+./get012  >> $out 2>&1
 end=`date +%s`
 runtime=$(echo "($end-$start)/3600" | bc -l)
 echo " The running time for the program:      ${runtime} hr "                 >> $out
 
-#cp GEBV.txt $PBS_O_WORKDIR/
+
+
+# copy the new marker file back with 0 1 2 coded
+cp marker012.dat $PBS_O_WORKDIR/
 
 
 
