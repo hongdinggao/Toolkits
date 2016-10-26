@@ -9,15 +9,15 @@
 
 
 ##PBS -l nodes=1
-#PBS -N reformat
-#PBS -q qgg
-#PBS -l walltime=100:00:00
+#PBS -N CODE012
+#PBS -q gbi
+#PBS -l walltime=60:00:00
 ##PBS -l nodes=1:ppn=2
 #PBS -j oe
 
 
-JOBNAME=mk_adam
-MKFILE=/usr/home/qgg/hdg/ADAM2016/hongding/marker1.res
+JOBNAME=adam_012code
+MKFILE=/usr/home/qgg/hdg/ADAM2016/hongding/single_trait/marker1.res
 PROG=/usr/home/qgg/hdg/ADAM2016/hongding/re_format/src/get012
 TMPDIR=/scratch/$USER/$PBS_JOBID
 out=$PBS_O_WORKDIR/$JOBNAME.lst
@@ -57,8 +57,8 @@ echo "The start line for markers is from $FIRSTLINE"                          >>
 awk -v ss=$FIRSTLINE 'NR >= ss' marker1.res > mk.tmp
 
 
-# print all but not the last 2 lines
-head -n -2 mk.tmp > mk.tmp2
+# print all but not the last 2 lines, and pick up the real genotyped individuals (code == 1) 
+head -n -2 mk.tmp | awk '$2==1' > mk.tmp2
 
 echo                                                                              >> $out
 echo "The Nr. after extract the original ADAM marker file is $(wc -l < mk.tmp2)"  >> $out
@@ -70,7 +70,7 @@ nchro=30
 nnl=$(wc -l < mk.tmp2)
 #nanimals=$(echo "scale=0; $nnl/$nchro" | bc -l)
 nanimals=$(expr $nnl / $nchro)
-echo "The Nr. of animals is $nanimals "                                        >> $out
+echo "The Nr. of real genotyped animals is $nanimals "                                        >> $out
 
 
 # check the Nr. of loci in each chromosome
@@ -87,7 +87,7 @@ fi
 
 
 # stack all the chromosome to a whole genome
-for((i=1; i<=$nnl; i=i+$nchro))
+for((i=1; i<$nnl; i=i+$nchro))
 do
     k=$(expr $i + $nchro)
     awk -v j=$i -v el=$k 'NR >= j && NR < el {SNP=SNP$4} END {print SNP}' mk.tmp2 >> test3.mk
@@ -99,21 +99,25 @@ done
 # another way of doing this
 # cat test3.mk | while read oneline; do echo $oneline | fold -w1 | paste -sd' ' - >> test4.mk; done
 
-# paste the IDs back
-awk '{print $1}' mk.tmp2 | uniq | paste -d' ' - test3.mk > rawmarker.dat
+# change name 
+mv test3.mk rawmarker.dat
 
 
-
-# run prog
+# run Fortran prog to convert code to 012
 ./get012  >> $out 2>&1
 end=`date +%s`
 runtime=$(echo "($end-$start)/3600" | bc -l)
 echo " The running time for the program:      ${runtime} hr "                 >> $out
 
 
+# paste the IDs back
+awk '{print $1}' mk.tmp2 | uniq | paste -d' ' - marker012.dat > marker012_new.dat
+rm rawmarker.dat mk.tmp2
+
+
 
 # copy the new marker file back with 0 1 2 coded
-cp marker012.dat $PBS_O_WORKDIR/
+cp marker012_new.dat $PBS_O_WORKDIR/
 
 
 
